@@ -2,6 +2,9 @@
 
 A web application that detects fake news in real-time using machine learning. The application fetches news articles from various categories and analyzes them using a BERT-based model to determine their authenticity.
 
+## Demo video
+https://drive.google.com/file/d/174RspJM3vXSQ8uwyWhleb0DQUX9oiQL9/view?usp=sharing
+
 ## Features
 
 - **Real-time News Analysis**: Fetches and analyzes news articles in real-time
