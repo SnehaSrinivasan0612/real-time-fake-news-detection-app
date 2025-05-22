@@ -25,7 +25,6 @@ A web application that detects fake news in real-time using machine learning. Th
 
 - Python 3.8 or higher
 - pip (Python package installer)
-- Netlify account (for deployment)
 
 ## Installation
 
@@ -74,54 +73,6 @@ http://localhost:5000
    - Click the "Load More Articles" button at the bottom
    - New articles will be loaded dynamically
 
-## Deployment
-
-### Netlify Deployment
-
-1. Install Netlify CLI (optional):
-```bash
-npm install netlify-cli -g
-```
-
-2. Deploy to Netlify:
-   - Connect your GitHub repository to Netlify
-   - Configure build settings:
-     - Build command: `pip install -r requirements.txt`
-     - Publish directory: `.`
-     - Functions directory: `netlify/functions`
-
-3. Set environment variables in Netlify dashboard:
-   - `NEWS_API_KEY`: Your News API key
-   - `PYTHON_VERSION`: 3.8
-
-4. Deploy your site:
-   - Netlify will automatically deploy when you push to your repository
-   - Or use the Netlify CLI:
-     ```bash
-     netlify deploy
-     ```
-
-### Production Considerations
-
-1. Environment Variables:
-   - Set `NEWS_API_KEY`
-   - Configure appropriate logging levels
-
-2. Security:
-   - Use HTTPS (provided by Netlify)
-   - Configure CORS if needed
-   - Use Netlify's environment variables for API keys
-
-3. Monitoring:
-   - Use Netlify's built-in analytics
-   - Configure logging
-   - Set up alerts for errors
-
-4. Performance:
-   - Enable Netlify's asset optimization
-   - Configure caching headers
-   - Use Netlify's CDN for static assets
-
 ## Technical Details
 
 - **Frontend**: HTML, CSS, JavaScript with Bootstrap 5
@@ -130,7 +81,6 @@ npm install netlify-cli -g
   - Fake News Detection: BERT-tiny model
   - Text Summarization: BART-large-CNN
 - **News API**: NewsAPI.org
-- **Containerization**: Docker
 
 ## Dependencies
 

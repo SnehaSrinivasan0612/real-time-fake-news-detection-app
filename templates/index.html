@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Fake News Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .article-card {
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .article-card:hover {
+            transform: translateY(-5px);
+        }
+        .confidence-badge {
+            font-size: 0.9em;
+            padding: 5px 10px;
+        }
+        .fake-news {
+            background-color: #ffebee;
+        }
+        .real-news {
+            background-color: #e8f5e9;
+        }
+        .article-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-text {
+            flex-grow: 1;
+        }
+        .no-image {
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .category-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 1.5rem 0;
+            text-transform: capitalize;
+        }
+        .load-more-container {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .load-more-btn {
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            background-color: #3498db;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .load-more-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        .loading-spinner {
+            display: none;
+            margin: 1rem auto;
+        }
+        .loading-message {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+        .article-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .publish-date {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <h1 class="text-center mb-4">Real-Time Fake News Detection</h1>
+        
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
+                <form method="POST" class="card p-4" id="categoryForm">
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Select News Category</label>
+                        <select name="category" id="category" class="form-select" required>
+                            {% for category in categories %}
+                            <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="page" value="1" id="pageInput">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Get News</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="loading-message" id="loadingMessage">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>News articles being fetched and verified. Please wait...</p>
+        </div>
+
+        {% if current_category %}
+        <h2 class="category-title text-center">{{ current_category|title }} News</h2>
+        {% endif %}
+
+        {% if articles %}
+        <div class="row" id="articlesContainer">
+            {% for article in articles %}
+            <div class="col-md-6 mb-4">
+                <div class="card article-card {{ 'fake-news' if article.is_fake else 'real-news' }}">
+                    {% if article.image != '#' %}
+                    <img src="{{ article.image }}" class="article-image" alt="Article image">
+                    {% else %}
+                    <div class="article-image no-image">No image available</div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ article.title }}</h5>
+                        <div class="article-meta">
+                            <small class="text-muted">Source: {{ article.source }}</small>
+                            <small class="publish-date">{{ article.publishedAt }}</small>
+                        </div>
+                        <p class="card-text">{{ article.summary }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <span class="badge {{ 'bg-danger' if article.is_fake else 'bg-success' }} confidence-badge">
+                                {{ 'Fake News' if article.is_fake else 'Real News' }} ({{ article.confidence }} confidence)
+                            </span>
+                            <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Read More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="load-more-container">
+            <div class="spinner-border text-primary loading-spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <button type="button" class="btn btn-primary load-more-btn" id="loadMoreBtn">Load More Articles</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var currentPage = {{ current_page }};
+        var currentCategory = "{{ current_category }}";
+        
+        // Show loading message on form submit
+        document.getElementById('categoryForm').addEventListener('submit', function() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        });
+        
+        // Reset page to 1 when changing category
+        document.getElementById('category').addEventListener('change', function() {
+            document.getElementById('pageInput').value = 1;
+        });
+
+        // Load more articles dynamically
+        var loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function() {
+                var spinner = document.querySelector('.loading-spinner');
+                
+                // Show loading spinner and hide button
+                spinner.style.display = 'block';
+                loadMoreBtn.style.display = 'none';
+                
+                // Prepare form data
+                var formData = new FormData();
+                formData.append('category', currentCategory);
+                formData.append('page', currentPage + 1);
+                
+                // Make AJAX request
+                fetch('/load_more', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.articles.length > 0) {
+                        // Append new articles
+                        var container = document.getElementById('articlesContainer');
+                        data.articles.forEach(article => {
+                            var articleHtml = `
+                                <div class="col-md-6 mb-4">
+                                    <div class="card article-card ${article.is_fake ? 'fake-news' : 'real-news'}">
+                                        ${article.image !== '#' 
+                                            ? `<img src="${article.image}" class="article-image" alt="Article image">`
+                                            : `<div class="article-image no-image">No image available</div>`
+                                        }
+                                        <div class="card-body">
+                                            <h5 class="card-title">${article.title}</h5>
+                                            <div class="article-meta">
+                                                <small class="text-muted">Source: ${article.source}</small>
+                                                <small class="publish-date">${article.publishedAt}</small>
+                                            </div>
+                                            <p class="card-text">${article.summary}</p>
+                                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                                <span class="badge ${article.is_fake ? 'bg-danger' : 'bg-success'} confidence-badge">
+                                                    ${article.is_fake ? 'Fake News' : 'Real News'} (${article.confidence} confidence)
+                                                </span>
+                                                <a href="${article.url}" target="_blank" class="btn btn-sm btn-outline-primary">Read More</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', articleHtml);
+                        });
+                        
+                        // Show/hide load more button based on whether there are more articles
+                        if (!data.has_more) {
+                            loadMoreBtn.style.display = 'none';
+                        } else {
+                            loadMoreBtn.style.display = 'block';
+                        }
+                    } else {
+                        loadMoreBtn.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loadMoreBtn.style.display = 'block';
+                })
+                .finally(() => {
+                    spinner.style.display = 'none';
+                });
+            });
+        }
+    </script>
+</body>
+</html> 

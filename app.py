@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, jsonify
 from transformers import pipeline
 import requests
+import os
+
+# Create templates directory if it doesn't exist
+if not os.path.exists('templates'):
+    os.makedirs('templates')
 
 app = Flask(__name__)
 
